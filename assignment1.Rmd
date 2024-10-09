@@ -1,6 +1,6 @@
 ---
 title: "Assignment 1"
-author: "Travis Rutledge, Dylan Cheung, Dulitha Perera, Chris Liolios"
+author: "Group 32: Travis Rutledge, Dylan Cheung, Dulitha Perera, Chris Liolios"
 date: "2024-09-24"
 output:
   pdf_document: default
@@ -118,26 +118,290 @@ qqplot(qgamma(ppoints(length(bankdata$income)),
        col = "orange", pch = 19)
 abline(0, 1, col = "black", lwd = 2)
 ```
+
+# Task 2
+
+## Fitting Distributions and Estimating the 80th Percentile
+
+We fit Normal, Exponential, and Gamma distributions to the income data and estimate the 80th percentile for each
+
+```{r}
+# Fit the Normal distribution to the income data
+normal_params <- fitdistr(bankdata$income, "normal")
+
+# Fit the Exponential distribution to the income data
+expon_params <- fitdistr(bankdata$income, "exponential")
+
+# Fit the Gamma distribution to the income data
+gamma_params <- fitdistr(bankdata$income, "gamma")
+
+# Estimate the 80th percentile for Normal, Exponential, and Gamma distributions
+normal_80 <- qnorm(0.80, mean = normal_params$estimate['mean'], sd = normal_params$estimate['sd'])
+expon_80 <- qexp(0.80, rate = 1 / expon_params$estimate['rate'])
+gamma_80 <- qgamma(0.80, shape = gamma_params$estimate['shape'], scale = 1 / gamma_params$estimate['rate'])
+
+# Print the 80th percentile estimates
+normal_80
+expon_80
+gamma_80
+
+```
+
+
+## Non-parametric Estimate of the 80th Percentile
+
+Calculate the 80th percentile directly from the sample using a non-parametric approach, without assuming any underlying distribution.
+
+```{r}
+# Estimate the 80th percentile using the sample quantile (non-parametric)
+sample_80 <- quantile(bankdata$income, 0.80, type = 7)
+
+# Print the non-parametric sample 80th percentile
+sample_80
+
+```
+
+## Calculating Confidence Intervals
+
+Calculate confidence intervals for the 80th percentile estimates from each distribution, and use bootstrapping to calculate the confidence interval for the sample quantile.
+
+```{r}
+# Confidence Intervals for Normal distribution
+normal_ci <- c(qnorm(0.80 - 0.025, mean = normal_params$estimate['mean'], sd = normal_params$estimate['sd']),
+               qnorm(0.80 + 0.025, mean = normal_params$estimate['mean'], sd = normal_params$estimate['sd']))
+
+# Confidence Intervals for Exponential distribution
+expon_ci <- c(qexp(0.80 - 0.025, rate = 1 / expon_params$estimate['rate']),
+              qexp(0.80 + 0.025, rate = 1 / expon_params$estimate['rate']))
+
+# Confidence Intervals for Gamma distribution
+gamma_ci <- c(qgamma(0.80 - 0.025, shape = gamma_params$estimate['shape'], scale = 1 / gamma_params$estimate['rate']),
+              qgamma(0.80 + 0.025, shape = gamma_params$estimate['shape'], scale = 1 / gamma_params$estimate['rate']))
+
+# Bootstrap confidence interval for the sample quantile
+set.seed(123)
+boot_samples <- replicate(1000, quantile(sample(bankdata$income, replace = TRUE), 0.80))
+sample_ci <- quantile(boot_samples, c(0.025, 0.975))
+
+# Print confidence intervals
+normal_ci
+expon_ci
+gamma_ci
+sample_ci
+
+```
+
+
+## Results of the Analysis (Including Plots, Numerical Results, and Conclusions)
+
+- 80th Percentile Estimates:
+
+Normal distribution estimate: `r normal_80`
+
+Exponential distribution estimate: `r expon_80`
+
+Gamma distribution estimate: `r gamma_80`
+
+Sample quantile (non-parametric) estimate: `r sample_80`
+
+b) Confidence Intervals:
+Normal distribution: Confidence interval: `r normal_ci`
+
+Exponential distribution: Confidence interval: `r expon_ci`
+
+Gamma distribution: Confidence interval: `r gamma_ci`
+
+Sample quantile (non-parametric): Bootstrap confidence interval: `r sample_ci`
+
+
+## Plots
+
+Visualising the distribution of income using histograms and overlaid probability density functions to see how each distribution fits the data.
+
+```{r}
+# Plot the income distribution with fitted Normal, Exponential, and Gamma distributions
+ggplot(bankdata, aes(x = income)) +
+  geom_histogram(aes(y = ..density..), binwidth = 10000, fill = "purple", color = "black") +
+  stat_function(fun = dnorm, args = list(mean = normal_params$estimate['mean'], sd = normal_params$estimate['sd']),
+                color = "steelblue", lwd = 1.5) +
+  stat_function(fun = dexp, args = list(rate = 1 / expon_params$estimate['rate']),
+                color = "darkgreen", lwd = 1.5) +
+  stat_function(fun = dgamma, args = list(shape = gamma_params$estimate['shape'], scale = 1 / gamma_params$estimate['rate']),
+                color = "orange", lwd = 1.5) +
+  labs(title = "Income Distribution with Fitted Distributions", x = "Income", y = "Density") +
+  theme_minimal()
+
+```
+
+
+## Explanation
+
+In this analysis, we assume that the income data follows a continuous probability distribution. There are three parametric models which are Normal, Exponential, and Gamma distributions because each model has different properties that may define the data. For example, the Normal distribution assumes that data is fairly distributed around the mean, while the Gamma distribution is often better suited for positively skewed data like income. The Exponential distribution is another model used for positive, right-skewed data, where the tail stretches out to the right side.
+
+For comparison, we have used a non-parametric method (the sample quantile) to estimate the 80th percentile directly from the data. This approach does not assume any underlying probability distribution, making it a useful reference point for comparing with the parametric models.
+
+Also calculate confidence intervals (CI) to provide a range of likely values for the 80th percentile, giving us insight into the uncertainty of these estimates. For the sample quantile, we use bootstrapping to estimate the confidence interval, as it does not rely on parametric assumptions.
+
+## Explanation to the manager
+
+In this task, we aimed to estimate the 80th percentile of customer income using several statistical models, including Normal, Exponential, Gamma distributions, and a non-parametric approach. The results indicate that the Gamma distribution and the non-parametric sample quantile provide the most reliable estimates for the 80th percentile. This is because the Gamma distribution is better suited to display the skewness in the income data, which is typical of income distributions, where a small number of customers earn higher income compare to other customers.
+
+The confidence intervals for each method give us a measure of the uncertainty in our estimates. For example, the 80th percentile estimated by the Gamma distribution is `r gamma_80`, with a confidence interval of `r gamma_ci`. This provides us with a range of values where we expect the true 80th percentile to lie.
+
+In conclusion, the Gamma distribution and the sample quantile method are preferred due to their ability to manage display the skewness in income data. These methods provide a more accurate picture of the upper end of customer incomes, which is valuable for understanding who are high-income customers.
+
+
 # Task 4
 
-## Broken Out by Education Level
-When we break out this distribution by education level, we can see a more informed story. Generally speaking, as the level of education increases, so does the level of income. Customers who have doctorates have the highest income, on average.  The following is a density plot showing customer income broken out by education level:
+Question 4
 
-```{r densityplot}
-densityplot <- ggplot(data=bankdata, aes(x=income, group=education, fill=education)) +
+To compare the income distribution for each education group we can generate boxplots from our dataset:
+
+```{r}
+ggplot(bankdata, aes(x = education, y = income)) +
+  geom_boxplot() +
+  labs(title = "Education level effect on income", x = "Education", y = "Income")
+```
+Analysing these plots side by side it is clear that higher levels of education correlate with higher incomes. Bachelor’s Degree Holders exhibit a wide interquartile range between $40,000 and $125,000  indicating significant variability in income. The large positive whiskers suggest that many individuals earn substantially higher incomes, likely due to better professions. The presence of outliers further emphasises this vthis which shows some exceptionally high earners that may not represent the average bachelor’s degree holder.
+
+In contrast, Doctorate Degree Holders show a smaller range indicating less variability in income. Despite this, their overall income range averages out just under $150,000, reflecting higher earning potential. This box plot is also much shorter and stubbier than the others which suggests that doctorate holders tend to have more stable and predictable incomes, often found in specialised positions in academia or research.
+
+High School Graduates have an average income around $45,000, significantly lower than those with higher education. Their IQR ranges from $20,000 to $80,000, indicating limited income variability and upward mobility. While some high school graduates earn decent incomes many may struggle to earn on a higher scale.
+
+Overall the boxplot analysis reveals a clear correlation between educational attainment and income. Higher levels of education are associated with greater earning potential and income stability. This raises important questions about the factors contributing to income disparities among graduates.
+
+To test if there is a large enough difference in average income between customers who have a university degree and those who do not, we can calculate the 95% confidence interval between the difference of the means between the two groups. It is appropriate to use the Central Limit Theorem (CLT) when calculating this confidence interval because we are working with continuous data and each group has a large enough sample size of at least 30 customers. The CLT states that when there is a large enough sample size, the sampling distribution of the mean will be approximately normal even if the underlying data are not normal. If the sample size was less than 30, we would consider using another approach like boostrapping.
+
+First, for context, the following is a density plot showing the distribution of income for customers with university degrees and customers without university degrees. The plot of our sample shows the average income of customers with degrees being slightly higher than customers without degrees. 
+```{r density_plot}
+bankdata_unidegree <- bankdata %>% 
+  mutate(uni_degree = if_else(education %in% c("Bachelor", "Master", "Doctorate"), 
+                              "degree",
+                              "no degree"))
+
+densityplot_unidegree <- ggplot(
+  data=bankdata_unidegree, aes(x=income, group=uni_degree, fill=uni_degree)) +
     geom_density(adjust=1.5, alpha = 0.4) +
-    labs(title = "Income Distribution by Education Level",  # Title
+    labs(title = "Income Distribution by Degree",  # Title
          x = "Income in Thousands of Dollars ($)",
          y = "Density")
+densityplot_unidegree
 
-densityplot
-```
-Below is a table providing descriptive statistics of customer income for each education level.
-
-```{r descriptive_statistics}
-bankdata_wider <- pivot_wider(bankdata, names_from = education, values_from = income)
-
-kable(summary(bankdata_wider))
 ```
 
-As wee see in the density plot above, the average and median incomes increase as the level of education increases. Although customers with doctorates earn the highest average wages, they do not have the highest maximum income in the dataset. The maximum income in the dataset is $453.90k, and that comes from a customer with a Master's degree. Customer's with Master's degrees have the highest variability in income compared to ther education levels. 
+Next, we can calculate the 95% confidence interval between the two groups using CLT. 
+```{r confidence_intervals}
+#uni group and nonuni groups
+degree <- bankdata %>% filter(education %in% c("Bachelor", "Master", "Doctorate"))
+no_degree <- bankdata %>% filter(education == "High school")
+
+#mean of the groups
+mean_income_with_degree <- bankdata_unidegree %>% 
+  filter(uni_degree == "degree") %>% 
+  summarise(mean_income = mean(income))
+
+mean_income_without_degree <- bankdata_unidegree %>%
+  filter(uni_degree == "no degree") %>%
+  summarise(mean_income = mean(income))
+
+#SD of the groups
+sd_degree <- sd(degree$income)
+sd_no_degree <- sd(no_degree$income)
+
+# Sample sizes of the groups
+sample_degree <- nrow(degree)
+sample_no_degree <- nrow(no_degree)
+
+#difference of the means
+mean_diff <- mean_income_with_degree - mean_income_without_degree
+
+#standard error of the difference of the means
+SE <- sqrt((sd_degree^2 / sample_degree) + (sd_no_degree^2 / sample_no_degree))
+
+#confidence intervals
+CI_upper <- mean_diff + qnorm(0.975) * SE
+CI_lower <- mean_diff + qnorm(0.025) * SE
+
+kable(tibble(mean_difference = mean_diff, CI_lower = CI_lower, CI_upper = CI_upper))
+```
+
+The mean difference between the two groups is $28.4, meaning that customers with degrees earned $28.4k more income than customers without degrees, on average. The 95% confidence interval has a lower bound of -$0.88k and an upper bound of $57.73k. This means that we are 95% confident that the true difference between the two groups lies somewhere between these numbers. With one of the values being negative, this means that it's possible that our population has non-degree customers earning more than degree customers. 
+
+Although these data and results are helpful, they do not provide sufficient evidence that higher education causes higher incomes. The difference in the mean incomes between customers with university degrees and those without university degrees may indicate an association but it does mean there is causation. This is especially true because our lower bound had a negative number, meaning it is possible that non-degree holders earn more income than degree holders. This is also because there many be other factors that contribute to higher incomes, such as work experience, gender, socioeconomic background, city, type of work, and more. While a statistical test, like a t-test, could provide a p-value and tell us if there is a significant difference between the means, that alone does provide evidence of causation. If we really wanted to prove that university degrees lead to higher incomes, we would need to control for the other factors. 
+
+# Task 5
+
+The last business question is if there is a big enough difference in the 80th percentile incomes of those with and without a university degree. To answer this, the following steps were done using a Bayesian inference approach: model each education group separately using an exponential distribution, state the posterior distribution, calculate 95% credible intervals, simulate 10,000 values of the posterior distribution of the difference between the 80th percentile of the two groups, and calculate a final approximate 95% credible interval for the difference between the two groups.
+
+## Model the group separately
+
+```{r}
+#uni group and nonuni groups
+degree <- bankdata |>filter(education %in% c("Bachelor", "Master", "Doctorate"))
+no_degree <- bankdata |> filter(education == "High school")
+
+alpha <- 1
+beta <- 1
+```
+
+The code above creates two groups - one group for all the customer income who have a university degree and another group for all customer income without a university degree. The prior alphas and betas were set equal to 1 for each group, which will be used in calculating the posterior distributions.  
+
+## Calculate the posterior distributions and 95% credible intervals 
+
+```{r}
+# Posterior parameters for no_degree group
+alpha_no_degree <- alpha + nrow(no_degree) 
+beta_no_degree <- beta + sum(no_degree$income)  
+
+# Posterior parameters for degree group
+alpha_degree <- alpha + nrow(degree)  
+beta_degree <- beta + sum(degree$income) 
+
+# Calculate the 95% credible intervals
+ci_lambda_no_degree <- qgamma(c(0.025, 0.975), shape = alpha_no_degree, rate = beta_no_degree)
+ci_lambda_degree <- qgamma(c(0.025, 0.975), shape = alpha_degree, rate = beta_degree)
+```
+
+The posterior distribution is Gamma (31, 1952.8) for the no degree group and Gamma (171, 15894.2) for the degree group. The shape parameter, $\alpha$, is the number of observations in each group. The rate parameter, $\beta$, is the sum of the customer income for each group. Because the prior $\alpha$ and $\beta$ were 1, the posterior are simply adding 1 to the number of customers in each group and the sum of income in each group. The posterior distributions describe our updated belief about how quickly customer income declines based on both on our prior belief and the data. 
+
+The 95% credible interval is (0.01078605, 0.021931) for the no degree group and (0.009206505, 0.01242991) for the degree group. This means that we are 95% confident that the true rate parameter lies within these ranges for each group. Because the credible interval for the degree group is both narrower and lower, we expect that customers with degrees tend to have higher incomes that are less spread compared to customers without degrees. 
+
+## Simulate 10,000 values
+
+```{r samples}
+#set the samples
+samples <- 10000
+
+# simulate 10,000 values for the no degree group
+lambda_no_degree <- rgamma(samples,
+                           shape = alpha_no_degree,
+                           rate = beta_no_degree)
+
+# simuate 10,000 values for the degree group
+lambda_degree <- rgamma(samples,
+                           shape = alpha_degree,
+                           rate = beta_degree)
+```
+
+We can now simulate 10,000 random values for each group based on their posterior $\alpha$ and $\beta$ values. This will help us model the uncertainty in the rate parameters by creating a range of possible outcomes rather than relying on just one value. 
+
+
+## Calculate the 80th percentile 
+
+```{r 80th_percentile}
+#calculate 80th percentiles for no degree group and degree group
+percentile_no_degree <- -log(1 - 0.80) / lambda_no_degree
+percentile_degree <- -log(1 - 0.80) / lambda_degree
+
+#calculate difference of the percentiles between the groups
+diff_percentiles <- percentile_degree - percentile_no_degree
+```
+
+## Compute the 95% credible interval 
+
+```{r}
+#Calculate the 95% credible interval
+diff_ci <- quantile(diff_percentiles, c(0.025, 0.975))
+```
+
+The lower bound of the 95% credible interval is -2.6 and the upper bound is 85.4. This means that at the 80th percentile of income, it is possible that customers with degrees would earn $2.62k less than customers without degrees. However, it also means that customers with degrees could earn up to $85.4k more than customers without degrees. While the interval suggests some uncertainty about whether customers with degrees always earn more, the large positive upper bound suggests that the 80th percentile income for customers with degrees could be significantly higher than for those without degrees.
